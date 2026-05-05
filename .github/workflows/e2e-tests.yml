@@ -17,6 +17,7 @@ jobs:
       SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
       HEADED: "false"
       FORCE_FRESH_LOGIN: "true"
+      PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
 
     steps:
       - name: Checkout code
@@ -28,13 +29,38 @@ jobs:
           python-version: "3.13"
           cache: "pip"
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Cache npm (for Allure CLI)
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-allure-${{ runner.os }}
+          restore-keys: |
+            npm-allure-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
 
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: playwright install chromium --with-deps
+
+      - name: Install Playwright deps (if cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: playwright install-deps chromium
+
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline
 
       - name: Run login test
         run: python -m pytest tests/test_login.py -v --tb=short
@@ -44,9 +70,7 @@ jobs:
 
       - name: Build Allure HTML report
         if: always()
-        run: |
-          npm install -g allure-commandline
-          allure generate reports/allure-results -o reports/allure-html --clean
+        run: allure generate reports/allure-results -o reports/allure-html --clean
 
       - name: Upload test reports
         if: always()
