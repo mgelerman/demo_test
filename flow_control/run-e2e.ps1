@@ -27,14 +27,19 @@ Push-Location $repoRoot
 try {
     $env:PYTHONUNBUFFERED = "1"
 
-    # ------------------------------------------------- 1. Kill stale processes
+    # ------------------------------------------------- 1. Kill stale AUTOMATION processes only
     Write-Host ""
-    Write-Host "=== Step 1/5: Killing stale processes ===" -ForegroundColor Magenta
-    $killNames = @('chrome', 'chromium', 'msedgewebview2', 'node', 'playwright')
-    foreach ($n in $killNames) {
-        Get-Process -Name $n -ErrorAction SilentlyContinue |
-            Stop-Process -Force -ErrorAction SilentlyContinue
-    }
+    Write-Host "=== Step 1/5: Killing stale automation processes ===" -ForegroundColor Magenta
+    # Only kill chrome/chromium spawned by Playwright (command line contains 'ms-playwright').
+    # This leaves your regular Chrome, Teams, Edge etc. untouched.
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.Name -match '^(chrome|chromium)\.exe$' -and
+            $_.CommandLine -match 'ms-playwright'
+        } |
+        ForEach-Object {
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
     Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -match 'pytest' -and $_.ProcessId -ne $PID } |
         ForEach-Object {
@@ -68,8 +73,6 @@ try {
     $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
     if (-not (Test-Path $pythonExe)) { $pythonExe = "python" }
 
-    $headedFlag = if ($Headless) { "--headed=false" } else { "--headed=true" }
-
     $orderedTargets = @(
         "tests/test_login.py",
         "tests/test_e2e_purchase_flow.py",
@@ -80,7 +83,11 @@ try {
     foreach ($t in $orderedTargets) { Write-Host "  - $t" -ForegroundColor Cyan }
     Write-Host ""
 
-    & $pythonExe -u -m pytest @orderedTargets -v $headedFlag
+    if ($Headless) {
+        & $pythonExe -u -m pytest @orderedTargets -v
+    } else {
+        & $pythonExe -u -m pytest @orderedTargets -v --headed
+    }
     $rc = $LASTEXITCODE
 
     Write-Host ""
