@@ -1,5 +1,7 @@
 # E-commerce E2E - Playwright + pytest (POM, OOP, Data-Driven)
 
+**Project repo:** https://github.com/mgelerman/demo_test
+
 End-to-end automation framework targeting
 [automationexercise.com](https://www.automationexercise.com).
 Implements the four functions required by the exercise brief
