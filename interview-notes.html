@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interview Notes — E2E Automation Project</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --bg-card-2: #273449;
+    --border: #334155;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #a78bfa;
+    --good: #22c55e;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --code-bg: #0b1220;
+    --code-text: #e0f2fe;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.65;
+  }
+  .layout { display: grid; grid-template-columns: 260px 1fr; gap: 0; min-height: 100vh; }
+  aside.toc {
+    background: #0a1020;
+    border-right: 1px solid var(--border);
+    padding: 24px 18px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  aside.toc h3 { color: var(--accent); margin: 0 0 12px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.2px; }
+  aside.toc ol { padding-left: 20px; margin: 0; }
+  aside.toc li { margin: 6px 0; }
+  aside.toc a { color: var(--text-dim); text-decoration: none; font-size: 0.88rem; }
+  aside.toc a:hover { color: var(--accent); }
+
+  main { padding: 40px 48px 80px; max-width: 1100px; }
+
+  header.hero {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  header.hero h1 {
+    font-size: 2.4rem; margin: 0 0 8px;
+    background: linear-gradient(90deg, #38bdf8, #a78bfa);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .subtitle { color: var(--text-dim); font-size: 1.1rem; }
+
+  .search-box {
+    width: 100%; padding: 12px 16px; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); font-size: 1rem; margin: 16px 0 24px;
+  }
+  .search-box::placeholder { color: var(--text-dim); }
+  .search-box:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+
+  section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  section h2 {
+    margin-top: 0; color: var(--accent);
+    border-bottom: 2px solid var(--border); padding-bottom: 10px;
+    font-size: 1.5rem;
+  }
+  section h3 { color: var(--accent-2); margin-top: 24px; font-size: 1.15rem; }
+  section h4 { color: #fbbf24; margin-top: 20px; margin-bottom: 8px; font-size: 1rem; }
+
+  code {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 2px 6px; border-radius: 4px;
+    font-family: "Consolas", "Courier New", monospace; font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+    border: 1px solid var(--border); font-size: 0.88rem; line-height: 1.5;
+  }
+  pre code { background: transparent; padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td {
+    text-align: left; padding: 10px 12px;
+    border-bottom: 1px solid var(--border); vertical-align: top;
+  }
+  th { background: var(--bg-card-2); color: var(--accent); font-size: 0.9rem; }
+  td { font-size: 0.94rem; }
+
+  .qa { background: var(--bg-card-2); border-left: 3px solid var(--accent-2); padding: 14px 18px; border-radius: 6px; margin: 12px 0; }
+  .qa .q { font-weight: 600; color: #fbbf24; margin-bottom: 6px; }
+
+  .tip { background: #14532d33; border-left: 3px solid var(--good); padding: 12px 16px; border-radius: 6px; margin: 14px 0; color: #bbf7d0; }
+  .warn { background: #78350f33; border-left: 3px solid var(--warn); padding: 12px 16px; border-radius: 6px; margin: 14px 0; color: #fed7aa; }
+  .danger { background: #7f1d1d33; border-left: 3px solid var(--bad); padding: 12px 16px; border-radius: 6px; margin: 14px 0; color: #fecaca; }
+  .idea { background: #1e3a5f33; border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 14px 0; }
+
+  ul.clean { list-style: none; padding-left: 0; }
+  ul.clean li { padding: 4px 0; }
+  ul.clean li::before { content: "▸ "; color: var(--accent); font-weight: bold; }
+
+  .badge-yes { color: #22c55e; font-weight: 600; }
+  .badge-no  { color: #ef4444; font-weight: 600; }
+  .badge-partial { color: #f59e0b; font-weight: 600; }
+
+  .footer-card {
+    background: linear-gradient(135deg, #1e3a5f 0%, #4c1d95 100%);
+    border: 1px solid var(--accent-2); border-radius: 12px;
+    padding: 24px 28px; margin-top: 40px; text-align: center;
+  }
+  .footer-card h3 { color: #fff; margin: 0 0 10px; }
+  .footer-card p { color: #e2e8f0; margin: 4px 0; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 24px; }
+  }
+
+  /* hide section if it doesn't match search */
+  section.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<aside class="toc">
+  <h3>Sections</h3>
+  <ol>
+    <li><a href="#improvements">Improvement ideas</a></li>
+    <li><a href="#architecture">Architecture principle</a></li>
+    <li><a href="#qa">Interview Q&amp;A bank</a></li>
+    <li><a href="#core">Core concepts</a></li>
+    <li><a href="#pydantic">Pydantic Settings</a></li>
+    <li><a href="#yaml-vs-pydantic">YAML vs Pydantic</a></li>
+    <li><a href="#github-actions">GitHub Actions (CI)</a></li>
+    <li><a href="#secrets-status">Secrets — implemented vs ready</a></li>
+    <li><a href="#sops">SOPS + age flow</a></li>
+    <li><a href="#gitleaks-install">Manual gitleaks install</a></li>
+    <li><a href="#toml">TOML</a></li>
+    <li><a href="#nodejs">Node.js role</a></li>
+    <li><a href="#tools">Dev / quality tools</a></li>
+    <li><a href="#folders">Folder layout</a></li>
+    <li><a href="#watchdog">Watchdog</a></li>
+    <li><a href="#junit">JUnit XML</a></li>
+    <li><a href="#oop">OOP — what &amp; why</a></li>
+    <li><a href="#pom">POM</a></li>
+    <li><a href="#data-driven">Data-driven</a></li>
+    <li><a href="#playwright">Playwright deep dive</a></li>
+    <li><a href="#route">context.route()</a></li>
+    <li><a href="#auto-fix">Auto-fix locators?</a></li>
+    <li><a href="#fixtures">Fixtures &amp; conftest</a></li>
+    <li><a href="#secrets-3">Secrets — 3 layers</a></li>
+    <li><a href="#ai-tooling">AI tooling layer</a></li>
+    <li><a href="#captcha">CAPTCHA</a></li>
+    <li><a href="#email">Job application reply</a></li>
+  </ol>
+</aside>
+
+<main>
+
+<header class="hero">
+  <h1>Interview Notes</h1>
+  <p class="subtitle">A single living dashboard for every concept, tool, and improvement idea around the E2E automation project.</p>
+  <input class="search-box" id="searchBox" type="text" placeholder="Search any topic (POM, gitleaks, CAPTCHA, ...)" />
+</header>
+
+<!-- ============== 1. Improvement ideas ============== -->
+<section id="improvements">
+  <h2>1. Improvement ideas / TODOs</h2>
+
+  <div class="idea">
+    <strong>Custom HTML reporting dashboard</strong><br/>
+    Go over current Allure / JUnit reports and design our own HTML view — anything we
+    can't get from Allure becomes a custom page (trends, owner-grouped views, etc.).
+  </div>
+
+  <div class="idea">
+    <strong>Assertions per section / page</strong> — minimum 5–6 assertions in every
+    test section so coverage stays high and bugs surface near the source.
+  </div>
+
+  <div class="idea">
+    <strong>HTML guide → Cursor → implementation</strong><br/>
+    Workflow we used: take the original Hebrew Word brief → translate to English →
+    turn into an HTML guide that breaks the work into tasks → feed it back to Cursor
+    so it can implement against a clear contract. Q&amp;A is captured inline as we go.
+  </div>
+
+  <div class="idea">
+    <strong>Capture artefacts only on failure</strong><br/>
+    Today we record video/trace/logs/screenshots for every test (success and fail).
+    Improvement: keep them only when a test fails, plus the final-state SS for passes.
+    Smaller reports, faster runs, less storage.
+  </div>
+
+  <div class="idea">
+    <strong>Pull Request workflow</strong><br/>
+    Add a CI mode for PRs (different from <code>main</code>): block merge until tests
+    pass, comment the artefact links on the PR, request review automatically.
+  </div>
+</section>
+
+<!-- ============== 2. Architecture principle ============== -->
+<section id="architecture">
+  <h2>2. Key architecture principle</h2>
+  <p><strong>4 horizontal layers + 1 vertical:</strong></p>
+  <pre><code>pages → components → flows → tests        (horizontal)
+              utils + config              (vertical helpers)</code></pre>
+  <p>
+    Tests <strong>never import Playwright directly</strong>. They call
+    <em>flows</em>, which call <em>pages</em>, which use <em>components</em> and
+    <em>locators</em>. Each layer focused on one job.
+  </p>
+</section>
+
+<!-- ============== 3. Q&A bank ============== -->
+<section id="qa">
+  <h2>3. Interview Q&amp;A bank</h2>
+
+  <div class="qa">
+    <div class="q">Q: Why Playwright over Selenium?</div>
+    <div>
+      Auto-waiting kills 90% of flakiness, built-in tracing/video out of the box,
+      single API across 3 browser engines, fast (1 process, 1 protocol via CDP).
+      Selenium needs separate drivers and lots of explicit waits.
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q: How do you keep secrets out of git?</div>
+    <div>
+      Three layers:
+      <ol>
+        <li><code>.env</code> in <code>.gitignore</code></li>
+        <li>Optional <code>SOPS + age</code> encryption</li>
+        <li><code>gitleaks</code> pre-commit hook as the safety net</li>
+      </ol>
+      CI uses <strong>GitHub Secrets</strong>.
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q: Difference between browser, context, page in Playwright?</div>
+    <div>
+      <strong>Browser</strong> = the running Chromium process.<br/>
+      <strong>BrowserContext</strong> = isolated session (cookies, storage) — like
+      an incognito window.<br/>
+      <strong>Page</strong> = a tab inside a context.<br/>
+      Multiple pages can share a context (same login state); contexts are independent.
+    </div>
+  </div>
+</section>
+
+<!-- ============== 4. Core concepts ============== -->
+<section id="core">
+  <h2>4. Core concepts (one-liners)</h2>
+  <ul class="clean">
+    <li><strong>pytest bottom line:</strong> Playwright automates the browser; pytest runs the tests and judges pass/fail.</li>
+    <li><strong>POM:</strong> Page Object Model — separate layers for pages, components, flows, utilities, configuration.</li>
+    <li><strong>Data-driven:</strong> tests read inputs from YAML files, configured via typed Pydantic settings, reporting into Allure with full evidence (trace, video, logs, screenshots).</li>
+  </ul>
+</section>
+
+<!-- ============== 5. Pydantic ============== -->
+<section id="pydantic">
+  <h2>5. Pydantic Settings (typed configuration)</h2>
+  <p><strong>Location:</strong> <code>c:\demo_test\src\config\settings.py</code></p>
+  <p>
+    Pydantic is a Python library for data validation. <code>pydantic-settings</code>
+    extends it to load configuration from environment variables and <code>.env</code>
+    files into a typed class.
+  </p>
+
+  <h3>Benefits</h3>
+  <table>
+    <tr><th>Problem</th><th>Pydantic solves it</th></tr>
+    <tr><td>Forgot to set <code>SITE_EMAIL</code>?</td><td>Crashes immediately with a clear error, not halfway through a test.</td></tr>
+    <tr><td>Set <code>HEADED=yes</code> instead of <code>true</code>?</td><td>Validates and converts types automatically.</td></tr>
+    <tr><td>Typo in variable name?</td><td>IDE autocomplete works because it's a real class with real attributes.</td></tr>
+    <tr><td>Where do settings come from?</td><td>One place to look — the Settings class.</td></tr>
+  </table>
+
+  <h3>How it loads values (priority order)</h3>
+  <ol>
+    <li>Environment variables (e.g. set in CI via GitHub Secrets)</li>
+    <li><code>.env</code> file in project root (local dev)</li>
+    <li>Default values in the class definition</li>
+  </ol>
+</section>
+
+<!-- ============== 6. YAML vs Pydantic ============== -->
+<section id="yaml-vs-pydantic">
+  <h2>6. YAML vs Pydantic — they work together</h2>
+  <table>
+    <tr><th>Concept</th><th>Purpose</th><th>Example</th></tr>
+    <tr><td>YAML (<code>data/queries.yaml</code>)</td><td>Test inputs — what to search, price ranges</td><td><code>term: "T-Shirt"</code></td></tr>
+    <tr><td>Pydantic Settings (<code>src/config/settings.py</code>)</td><td>Environment config — credentials, base URL, headed mode</td><td><code>SITE_EMAIL</code>, <code>BASE_URL</code></td></tr>
+  </table>
+  <p>
+    <strong>YAML</strong> = "what data to test with" &nbsp;·&nbsp;
+    <strong>Pydantic</strong> = "how the framework is configured to run".
+  </p>
+</section>
+
+<!-- ============== 7. GitHub Actions ============== -->
+<section id="github-actions">
+  <h2>7. GitHub Actions (CI/CD)</h2>
+  <p>
+    GitHub Actions is GitHub's built-in CI/CD system. It automatically runs tasks
+    when something happens in the repo — e.g. push or pull request.
+  </p>
+
+  <h4>What happens on every push to <code>main</code></h4>
+  <ol>
+    <li>GitHub spins up a fresh Linux VM</li>
+    <li>Checks out the code</li>
+    <li>Installs Python, deps, Playwright browsers</li>
+    <li>Runs all 5 tests headless (no display on Linux)</li>
+    <li>Builds the Allure HTML report</li>
+    <li>Uploads reports as a downloadable artifact (30-day retention)</li>
+  </ol>
+  <p><strong>File:</strong> <code>.github/workflows/e2e-tests.yml</code></p>
+
+  <h4>Why it matters</h4>
+  <ul class="clean">
+    <li>Catches bugs before they reach production</li>
+    <li>No "works on my machine" excuses — clean environment</li>
+    <li>Reports always available, even if a dev forgets to run locally</li>
+  </ul>
+</section>
+
+<!-- ============== 8. Secrets status ============== -->
+<section id="secrets-status">
+  <h2>8. Secrets — implemented vs ready</h2>
+  <table>
+    <tr><th>Layer</th><th>Config / code exists?</th><th>Active?</th></tr>
+    <tr><td>Layer 1: <code>.env</code> + <code>.gitignore</code></td><td><span class="badge-yes">Yes</span></td><td><span class="badge-yes">Yes — this is what we use</span></td></tr>
+    <tr><td>Layer 2: SOPS + age</td><td><span class="badge-yes">Yes (scripts ready)</span></td><td><span class="badge-no">No — never executed</span></td></tr>
+    <tr><td>Layer 3: gitleaks pre-commit</td><td><span class="badge-yes">Yes (<code>.pre-commit-config.yaml</code>)</span></td><td><span class="badge-partial">In progress</span></td></tr>
+  </table>
+</section>
+
+<!-- ============== 9. SOPS ============== -->
+<section id="sops">
+  <h2>9. SOPS + age — encryption flow</h2>
+  <ol>
+    <li>Run <code>scripts/encrypt-env.ps1</code></li>
+    <li>SOPS encrypts <code>.env</code> → <code>secrets/.env.sops</code> (safe to commit)</li>
+    <li>The file looks like:
+<pre><code>SITE_EMAIL=ENC[AES256_GCM,data:abc123...,tag:xyz...]
+SITE_PASSWORD=ENC[AES256_GCM,data:def456...,tag:uvw...]</code></pre>
+    </li>
+    <li>At runtime, if <code>.env</code> doesn't exist, the framework decrypts <code>secrets/.env.sops</code> using your local age key.</li>
+  </ol>
+  <p>
+    <strong>Why "optional":</strong> adds friction for new contributors (need age keys).
+    Plain <code>.env</code> + <code>.gitignore</code> is enough for this demo. SOPS is
+    there for production-grade security if needed.
+  </p>
+</section>
+
+<!-- ============== 10. gitleaks manual install ============== -->
+<section id="gitleaks-install">
+  <h2>10. Manual gitleaks installation (Windows)</h2>
+  <ol>
+    <li>Releases page: <code>https://github.com/gitleaks/gitleaks/releases</code></li>
+    <li>Download <code>gitleaks_X.X.X_windows_x64.zip</code> (or <code>_arm64</code> for ARM)</li>
+    <li>Extract → you get <code>gitleaks.exe</code></li>
+    <li>Move to a folder in PATH, e.g. <code>C:\Users\MOSHEGEL\AppData\Local\Microsoft\WindowsApps\</code> or create <code>C:\tools\</code> and add to PATH</li>
+    <li>Verify: <code>gitleaks version</code></li>
+  </ol>
+  <p>After this, pre-commit will find the existing gitleaks and won't try to download it.</p>
+</section>
+
+<!-- ============== 11. TOML ============== -->
+<section id="toml">
+  <h2>11. TOML</h2>
+  <p>
+    TOML stands for <strong>Tom's Obvious Minimal Language</strong>. A configuration
+    format like YAML/JSON, designed to be easy to read, easy to write, unambiguous.
+  </p>
+
+  <h4>TOML vs YAML vs JSON</h4>
+  <table>
+    <tr><th>Format</th><th>Strengths</th><th>Weaknesses</th></tr>
+    <tr><td>TOML</td><td>Clean <code>[headers]</code>, no indentation traps, great for config</td><td>Less common, not ideal for deeply nested data</td></tr>
+    <tr><td>YAML</td><td>Very readable, great for data files, widely used</td><td>Indentation-sensitive, surprising edge cases (<code>yes</code> becomes <code>true</code>)</td></tr>
+    <tr><td>JSON</td><td>Universal, strict, every language supports it</td><td>Verbose, no comments allowed</td></tr>
+  </table>
+
+  <h4>Where TOML is used in this project</h4>
+  <table>
+    <tr><th>File</th><th>Purpose</th></tr>
+    <tr><td><code>pyproject.toml</code></td><td>Python project metadata, dependencies, tool configs (ruff, black, mypy) — modern PEP 621 standard</td></tr>
+  </table>
+
+  <h4>Why Python adopted TOML</h4>
+  <p>Before TOML, Python projects had multiple config files:</p>
+  <ul class="clean">
+    <li><code>setup.py</code> — package metadata</li>
+    <li><code>requirements.txt</code> — dependencies</li>
+    <li><code>setup.cfg</code> — more metadata</li>
+    <li><code>.flake8</code>, <code>.isort.cfg</code>, … — per-tool configs</li>
+  </ul>
+  <p><code>pyproject.toml</code> replaces all of them in one file.</p>
+</section>
+
+<!-- ============== 12. Node.js role ============== -->
+<section id="nodejs">
+  <h2>12. Where Node.js comes in</h2>
+  <p>
+    We don't write Node.js code, but we depend on one Node tool:
+    <code>allure-commandline</code> (installed globally via
+    <code>npm i -g allure-commandline</code>). It generates the static HTML
+    Allure report from JSON results. Playwright itself also has a Node "driver"
+    that ships with the Python package — you don't manage it directly,
+    <code>pip install playwright</code> handles it.
+  </p>
+</section>
+
+<!-- ============== 13. Dev / quality tools ============== -->
+<section id="tools">
+  <h2>13. Dev / quality tools</h2>
+
+  <h3>Ruff — fast Python linter</h3>
+  <p>Replaces flake8 + isort + pyupgrade in one Rust-powered tool (10–100× faster).</p>
+<pre><code>import os, sys           # ❌ Multiple imports on one line
+from typing import List  # ❌ Use list instead of List (Python 3.9+)
+x = x                    # ❌ Self-assignment does nothing</code></pre>
+
+  <h3>Black — formatter</h3>
+  <p>Deterministic style — same input always → same output.</p>
+<pre><code># Before Black:
+x = {  'a':1,'b':2 }
+def foo(x,y,z): return x+y+z
+
+# After Black:
+x = {"a": 1, "b": 2}
+def foo(x, y, z):
+    return x + y + z</code></pre>
+
+  <h3>mypy — static type checker</h3>
+<pre><code>def greet(name: str) -> str:
+    return "Hello " + name
+
+greet(123)  # ❌ mypy: Argument 1 has incompatible type "int"; expected "str"</code></pre>
+  <p><em>Config is relaxed:</em> <code>strict = false</code>, <code>ignore_missing_imports = true</code> — good for gradual adoption.</p>
+
+  <h3>gitleaks — secret scanner</h3>
+<pre><code>Finding:     AWS_SECRET_KEY=AKIAIOSFODNN7EXAMPLE
+RuleID:      aws-access-key
+File:        config.py
+Line:        15</code></pre>
+
+  <h3>Status summary</h3>
+  <table>
+    <tr><th>Tool</th><th>What it does</th><th>Configured?</th><th>Active on commit?</th></tr>
+    <tr><td>ruff</td><td>Linter (errors, imports, modernization)</td><td><span class="badge-yes">Yes</span></td><td><span class="badge-no">No</span></td></tr>
+    <tr><td>black</td><td>Code formatter</td><td><span class="badge-yes">Yes</span></td><td><span class="badge-no">No</span></td></tr>
+    <tr><td>mypy</td><td>Type checker</td><td><span class="badge-yes">Yes</span></td><td><span class="badge-no">No</span></td></tr>
+    <tr><td>gitleaks</td><td>Secret scanner</td><td><span class="badge-yes">Yes</span></td><td><span class="badge-partial">Pending install</span></td></tr>
+  </table>
+</section>
+
+<!-- ============== 14. Folder layout ============== -->
+<section id="folders">
+  <h2>14. Architecture &amp; folder layout</h2>
+<pre><code>demo_test/
+├── src/
+│   ├── pages/          ← POM classes (LoginPage, CartPage, ...)
+│   ├── components/     ← Reusable widgets (Header, ProductCard, PriceFilter)
+│   ├── flows/          ← High-level scenarios (auth_flow, search_flow, cart_flow)
+│   ├── config/         ← Pydantic settings (typed .env loader)
+│   └── utils/          ← Logger, screenshot helper, price parser, variant picker
+├── tests/
+│   ├── conftest.py                       ← Fixtures, hooks, watchdog, evidence
+│   ├── test_login.py                     ← Negative → positive → logout
+│   ├── test_e2e_purchase_flow.py         ← Search + add to cart + assertions
+│   └── test_search_data_driven.py        ← Parametrized search scenarios
+├── data/queries.yaml                     ← Data-driven test inputs
+├── reports/                              ← Allure HTML, JUnit XML, evidence (gitignored)
+├── scripts/                              ← run-suite.ps1, open-report.ps1, encrypt-env.ps1, ...
+├── flow_control/                         ← Demo entry points (run-e2e.bat, clear-reports.bat)
+├── docs/                                 ← Brief, assertions, coverage-matrix, AGENTS, ai-workflow
+├── .cursor/                              ← Cursor IDE rules + commands + personas
+├── .github/workflows/e2e-tests.yml       ← CI pipeline
+├── pyproject.toml                        ← Project metadata + deps + ruff/black/mypy config
+├── pytest.ini                            ← pytest configuration
+└── .env / .env.example                   ← Local credentials (gitignored)</code></pre>
+</section>
+
+<!-- ============== 15. Watchdog ============== -->
+<section id="watchdog">
+  <h2>15. Watchdog</h2>
+  <p>A safety timer that forcefully kills the test process if it hangs too long.</p>
+
+  <h4>The problem</h4>
+  <p>Playwright on Windows sometimes hangs during teardown — browser closes, but the Python process sits doing nothing for 5–10+ minutes.</p>
+
+  <h4>How it works</h4>
+  <ol>
+    <li>Timer starts after each test (<code>pytest_runtest_logfinish</code> hook)</li>
+    <li>Grace period of ~8 seconds (<code>_WATCHDOG_GRACE_S</code>)</li>
+    <li>If still alive → force kill via Windows <code>TerminateProcess</code> API</li>
+  </ol>
+</section>
+
+<!-- ============== 16. JUnit XML ============== -->
+<section id="junit">
+  <h2>16. JUnit XML</h2>
+  <p>
+    Standard XML format for test results, originally from Java's JUnit framework.
+    Universal — every CI system (Jenkins, GitHub Actions, GitLab, Azure DevOps)
+    parses it natively.
+  </p>
+
+  <p><strong>Configured at:</strong> <code>pytest.ini</code> line 15:</p>
+<pre><code>--junit-xml=reports/junit.xml</code></pre>
+
+  <p><strong>Output goes to:</strong> <code>reports/junit.xml</code></p>
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;testsuite name="pytest" tests="5" errors="0" failures="0" time="96.5"&gt;
+  &lt;testcase classname="tests.test_login" name="test_login_negative_then_positive" time="28.3"/&gt;
+  &lt;testcase classname="tests.test_e2e_purchase_flow" name="test_full_purchase_flow_under_budget" time="35.1"/&gt;
+  &lt;testcase classname="tests.test_search_data_driven" name="test_search[tshirt]" time="11.2"/&gt;
+&lt;/testsuite&gt;</code></pre>
+
+  <table>
+    <tr><th>Format</th><th>Best for</th></tr>
+    <tr><td>JUnit XML</td><td>CI integration — machines parse it, dashboards show pass/fail</td></tr>
+    <tr><td>Allure</td><td>Human review — rich HTML with screenshots, videos, steps, trends</td></tr>
+  </table>
+</section>
+
+<!-- ============== 17. OOP ============== -->
+<section id="oop">
+  <h2>17. OOP — what &amp; why</h2>
+  <p>
+    OOP organises code into <strong>classes</strong> (blueprints) and
+    <strong>objects</strong> (instances). Each class bundles data (attributes) and
+    behavior (methods) related to one concept.
+  </p>
+
+  <h4>Why OOP in tests?</h4>
+  <ul class="clean">
+    <li>Selectors live in one file per page → UI changes touch one place</li>
+    <li>Tests read like English: <code>cart.add(product)</code> instead of <code>page.locator('[data-id=...]').click()</code></li>
+    <li>Inheritance lets every page share logging, screenshot helpers, ad-blocking — without copy/paste</li>
+  </ul>
+</section>
+
+<!-- ============== 18. POM ============== -->
+<section id="pom">
+  <h2>18. POM — Page Object Model</h2>
+  <p>Each web page (or major component) is represented by a Python class. The class exposes user-level actions and state queries, never raw selectors.</p>
+
+  <h4>Anatomy of a page object</h4>
+<pre><code>class LoginPage(BasePage):
+    URL = "/login"
+    EMAIL_INPUT = '[data-qa="login-email"]'
+    PASSWORD_INPUT = '[data-qa="login-password"]'
+    LOGIN_BUTTON = '[data-qa="login-button"]'
+    LOGIN_ERROR = "form p:has-text('incorrect')"</code></pre>
+
+  <h4>Why this works</h4>
+  <ul class="clean">
+    <li>Locators are constants at the top — easy to find and change</li>
+    <li>Methods return <code>self</code> when chainable: <code>LoginPage(page).login(...).logout()</code></li>
+    <li>State queries (<code>is_authenticated</code>, <code>is_on_login_page</code>) make assertions readable</li>
+    <li>BasePage centralises wait helpers, logger, screenshot capture</li>
+  </ul>
+
+  <h4>Components vs pages</h4>
+  <p>
+    A <strong>component</strong> is a reusable widget that appears on multiple pages —
+    site header, product card, price filter. Extracted so every page using them
+    gets the same logic for free.
+  </p>
+</section>
+
+<!-- ============== 19. Data-driven ============== -->
+<section id="data-driven">
+  <h2>19. Data-driven testing</h2>
+  <p>"Same test logic, many input rows." Inputs in <code>data/queries.yaml</code>:</p>
+<pre><code>queries:
+  - name: tshirt
+    term: "T-Shirt"
+    min_price: 400
+    max_price: 700
+  - name: jeans
+    term: "Jeans"
+    min_price: 500
+    max_price: 1500
+  - name: dress
+    term: "Dress"
+    min_price: 0
+    max_price: 9999</code></pre>
+
+  <p><code>test_search_data_driven.py</code> uses pytest's parametrize:</p>
+<pre><code>@pytest.mark.parametrize("query", load_queries(), ids=lambda q: q["name"])
+def test_search_with_price_filter(logged_in_page, query):
+    ...</code></pre>
+</section>
+
+<!-- ============== 20. Playwright ============== -->
+<section id="playwright">
+  <h2>20. Playwright deep dive</h2>
+
+  <h4>Built-in tracing</h4>
+  <p>
+    Captures DOM snapshots, network, console, screenshots in one zip — viewable with
+    <code>npx playwright show-trace</code>.
+  </p>
+
+  <h4>Locator strategy (in order of preference)</h4>
+  <ol>
+    <li><code>page.get_by_role("button", name="Login")</code> — accessibility-first, robust</li>
+    <li><code>page.get_by_test_id("login-button")</code> — explicit hooks via <code>data-test</code></li>
+    <li><code>page.get_by_text("Welcome")</code> — user-visible text</li>
+    <li>CSS attribute: <code>[data-qa="login-button"]</code></li>
+    <li>XPath — last resort. Mandated by the brief for product card collection in <code>SearchResultsPage</code></li>
+  </ol>
+</section>
+
+<!-- ============== 21. context.route() ============== -->
+<section id="route">
+  <h2>21. context.route() — block ad domains at the network layer</h2>
+  <p>Lets you intercept and control network requests before they reach the browser.</p>
+
+  <h4>What "block at network layer" means</h4>
+  <p>
+    A page makes many requests — HTML, CSS, images, scripts, <em>and ads</em>.
+    Ads come from external domains (<code>doubleclick.net</code>, <code>googlesyndication.com</code>, …).
+    With <code>context.route()</code> we intercept and abort them before they load.
+  </p>
+
+  <h4>Code</h4>
+<pre><code>context.route("**/*doubleclick.net*",      lambda route: route.abort())
+context.route("**/*googlesyndication*",    lambda route: route.abort())
+context.route("**/*facebook.com/tr*",      lambda route: route.abort())  # FB tracking pixel</code></pre>
+
+  <h4>Why we do this</h4>
+  <table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr><td>Ads cause random popups that break tests</td><td>Block them — they never load</td></tr>
+    <tr><td>Ad scripts slow page load</td><td>Block them — tests run faster</td></tr>
+    <tr><td>Ad networks are flaky (timeouts, errors)</td><td>Block them — no external dependency</td></tr>
+    <tr><td>Cookie consent banners from ad trackers</td><td>Block the tracker — banner often disappears</td></tr>
+  </table>
+</section>
+
+<!-- ============== 22. auto-fix ============== -->
+<section id="auto-fix">
+  <h2>22. Does Playwright auto-fix locators?</h2>
+  <p><strong>No.</strong> Playwright auto-<em>waits</em> for elements; it doesn't auto-fix broken selectors.</p>
+
+  <h4>External tools that try</h4>
+  <ul class="clean">
+    <li><strong>Playwright Codegen</strong> — records new selectors by watching you click</li>
+    <li><strong>Healing locators</strong> (Healenium and similar) — try to find similar elements when the original fails</li>
+  </ul>
+
+  <p><strong>Bottom line:</strong> POM + robust locators (<code>get_by_role</code>, <code>data-testid</code>) minimise how often you need to update selectors.</p>
+</section>
+
+<!-- ============== 23. Fixtures ============== -->
+<section id="fixtures">
+  <h2>23. Fixtures &amp; conftest.py</h2>
+  <p>Fixtures are the killer feature of pytest. They:</p>
+  <ul class="clean">
+    <li>Set up resources (browser, page, login session)</li>
+    <li>Tear them down automatically</li>
+    <li>Have scopes: <code>function</code> (default), <code>class</code>, <code>module</code>, <code>session</code></li>
+    <li>Inject into tests by parameter name</li>
+  </ul>
+</section>
+
+<!-- ============== 24. Secrets 3 layers ============== -->
+<section id="secrets-3">
+  <h2>24. Secrets — three layers</h2>
+  <ol>
+    <li><strong><code>.env</code> (gitignored)</strong> — plain text, local only. Loaded by <code>python-dotenv</code>.</li>
+    <li><strong>SOPS + age</strong> — optional. Encrypt <code>.env</code> at rest in the repo as <code>secrets/.env.sops</code>. Decrypts at runtime with the user's age key.</li>
+    <li><strong>gitleaks pre-commit hook</strong> — blocks commits that contain secrets (regex-matched).</li>
+  </ol>
+</section>
+
+<!-- ============== 25. AI tooling ============== -->
+<section id="ai-tooling">
+  <h2>25. AI tooling layer (MCP, Cursor rules, AGENTS.md)</h2>
+
+  <h3>MCP — Model Context Protocol</h3>
+  <p>Open standard for connecting LLMs to external tools/data. Two servers wired in:</p>
+  <ul class="clean">
+    <li><strong>Playwright MCP</strong> — lets an AI agent drive the browser directly (record, replay, inspect)</li>
+    <li><strong>Filesystem MCP</strong> — gives the agent scoped file read/write access</li>
+  </ul>
+
+  <h3>Cursor project-level rules</h3>
+  <p>
+    Files under <code>.cursor/rules/*.mdc</code>. Each rule is an "always-on"
+    instruction or pattern (e.g. "never put hard-coded waits", "prefer
+    <code>get_by_role</code>"). Cursor injects them into every prompt automatically.
+  </p>
+
+  <h3>Slash commands</h3>
+  <p>
+    <code>.cursor/commands/*.md</code> — reusable prompts triggered with
+    <code>/command-name</code>, e.g. <code>/add-page</code> scaffolds a new POM
+    class with the right boilerplate.
+  </p>
+
+  <h3>Personas</h3>
+  <p>
+    <code>docs/personas/*.md</code> — role descriptions (QA Architect, SDET, AI
+    Reviewer) the user can invoke to shift the AI's tone and priorities.
+  </p>
+
+  <h3>AGENTS.md</h3>
+  <p>
+    Single source of truth for any AI assistant working in the repo: project
+    conventions, naming rules, locator policy, security policy, do / never-do.
+    Universal — works with Cursor, Claude, Copilot, Aider, etc.
+  </p>
+</section>
+
+<!-- ============== 26. CAPTCHA ============== -->
+<section id="captcha">
+  <h2>26. CAPTCHA</h2>
+  <p>
+    "<strong>Completely Automated Public Turing test to tell Computers and Humans
+    Apart</strong>" — a challenge proving you're a human, not a bot. Sites use it
+    to block automated scripts (fake accounts, spam, scraping, brute-force).
+  </p>
+
+  <h3>Common types</h3>
+  <table>
+    <tr><th>Type</th><th>Example</th><th>How it works</th></tr>
+    <tr><td>Text CAPTCHA</td><td>Distorted letters/numbers</td><td>Type what you see: "xK9pL2"</td></tr>
+    <tr><td>Image CAPTCHA</td><td>"Select all traffic lights"</td><td>Click the right images</td></tr>
+    <tr><td>reCAPTCHA v2</td><td>"I'm not a robot" checkbox</td><td>Analyzes mouse movement, may show images</td></tr>
+    <tr><td>reCAPTCHA v3</td><td>Invisible</td><td>Scores behavior silently (0.0 = bot, 1.0 = human)</td></tr>
+    <tr><td>hCaptcha</td><td>Similar to reCAPTCHA</td><td>Privacy-focused alternative</td></tr>
+    <tr><td>Math CAPTCHA</td><td>"What is 3 + 7?"</td><td>Simple arithmetic</td></tr>
+    <tr><td>Audio CAPTCHA</td><td>Listen and type</td><td>Accessibility alternative</td></tr>
+  </table>
+
+  <h3>Why it's a problem for automation</h3>
+<pre><code>Test:    Fill login form → Click submit
+Website: "Prove you're human first" → Shows CAPTCHA
+Test:    ??? → Fails</code></pre>
+
+  <h3>How to handle CAPTCHAs in testing</h3>
+  <table>
+    <tr><th>Approach</th><th>When to use</th></tr>
+    <tr><td>Test environment without CAPTCHA</td><td>Best option — ask devs to disable for test/staging</td></tr>
+    <tr><td>Allowlisted IP / account</td><td>Test account or CI server IP bypasses CAPTCHA</td></tr>
+    <tr><td>API tokens / cookies</td><td>Skip the UI login entirely, inject auth directly</td></tr>
+    <tr><td>CAPTCHA-solving services</td><td>Last resort, costs money (2Captcha, Anti-Captcha)</td></tr>
+    <tr><td>Mock the CAPTCHA endpoint</td><td>Intercept and fake the response</td></tr>
+  </table>
+
+  <p>
+    <strong>In our project:</strong> <code>automationexercise.com</code> doesn't have
+    CAPTCHA on the login page, so tests work fine.
+  </p>
+</section>
+
+<!-- ============== 27. Job application reply ============== -->
+<section id="email">
+  <h2>27. Job application reply</h2>
+  <div class="qa">
+<pre style="background:transparent;border:none;padding:0;color:var(--text);white-space:pre-wrap;font-family:inherit;font-size:0.95rem;">Hi,
+
+Thank you for reaching out. Here are my answers:
+
+TFS / Jira: Yes, extensive experience with Jira including dashboards, reporting cycles,
+and full test management. Also worked with Confluence for documentation and traceability.
+
+Hands-on system testing (2-5 years): I have 6+ years of hands-on experience testing
+complex enterprise telecom systems at Amdocs, covering functional, regression, and
+integration testing across UI, API, and microservices.
+
+Communication protocols: Hands-on experience with REST API testing. Open to learning
+additional protocols as needed.
+
+Onsite in Tel Aviv: No problem, I'm available for full onsite work.
+
+Salary expectations: 26,000 - 30,000 ILS/month.
+
+Security clearance: No issues on my end.
+
+ID number: 040283707
+
+Looking forward to the next steps.
+Moshe</pre>
+  </div>
+</section>
+
+<div class="footer-card">
+  <h3>Built with AI agents</h3>
+  <p><strong>Model:</strong> Claude 4.7 (Anthropic)</p>
+  <p><strong>IDE / Agent host:</strong> Cursor</p>
+  <p><strong>MCP servers:</strong> Playwright MCP &nbsp;·&nbsp; Filesystem MCP</p>
+  <p style="margin-top:14px;font-size:0.88rem;color:#cbd5e1;">
+    All sections, code, configs, and CI workflows in this project were drafted in
+    collaboration with Claude 4.7 running inside Cursor, using project-level
+    rules and the AGENTS.md playbook for consistent style and security.
+  </p>
+</div>
+
+</main>
+</div>
+
+<script>
+  // Simple search filter — hides sections whose text doesn't match the query.
+  const box = document.getElementById('searchBox');
+  const sections = document.querySelectorAll('main section');
+  box.addEventListener('input', () => {
+    const q = box.value.trim().toLowerCase();
+    sections.forEach(s => {
+      if (!q || s.textContent.toLowerCase().includes(q)) {
+        s.classList.remove('hidden');
+      } else {
+        s.classList.add('hidden');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

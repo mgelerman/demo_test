@@ -16,10 +16,6 @@ inputs, and Allure reporting.
 > The full exercise brief in English is available as a one-page dashboard:
 > [`exercise-brief.html`](docs/exercise-brief.html).
 
-> The AI bug-hunting exercise (section 5) is documented in
-> [`ReadMeAIBugs.md`](ReadMeAIBugs/ReadMeAIBugs.md) /
-> [`ReadMeAIBugs.html`](ReadMeAIBugs/ReadMeAIBugs.html).
-
 > A per-test assertion reference is available in
 > [`test-assertions.md`](docs/test-assertions.md) /
 > [`test-assertions.html`](docs/test-assertions.html) — **35 assertions**
@@ -393,9 +389,6 @@ latest run → download the `test-reports` artifact.
 │   ├── test-assertions.html          Same, styled HTML dashboard
 │   ├── ai-workflow.md                AI-assisted workflow guide
 │   └── personas/                     Role-based AI personas
-├── ReadMeAIBugs/
-│   ├── ReadMeAIBugs.md               AI bug-hunting exercise (section 5)
-│   └── ReadMeAIBugs.html             Same, styled HTML
 ├── pyproject.toml
 ├── pytest.ini
 ├── .env.example

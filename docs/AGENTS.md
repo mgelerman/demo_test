@@ -118,5 +118,5 @@ augmentations - the test suite runs without them.
 
 ## Out of scope (this branch)
 
-- The "AI bugs" review exercise (section 5 of the brief). A stub lives at
-  [`ReadMeAIBugs.md`](ReadMeAIBugs.md); content is a separate task.
+- The "AI bugs" review exercise (section 5 of the brief) is a separate
+  code-review task and is not part of this repository.
