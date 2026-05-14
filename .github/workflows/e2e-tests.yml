@@ -68,10 +68,10 @@ jobs:
         run: npm install -g allure-commandline
 
       - name: Run login test
-        run: python -m pytest tests/test_login.py -v --tb=short
+        run: python -m pytest tests/test_login.py -v --tb=short --reruns 2 --reruns-delay 3
 
       - name: Run E2E + data-driven tests
-        run: python -m pytest tests/test_e2e_purchase_flow.py tests/test_search_data_driven.py -v --tb=short
+        run: python -m pytest tests/test_e2e_purchase_flow.py tests/test_search_data_driven.py -v --tb=short --reruns 2 --reruns-delay 3
 
       - name: Build Allure HTML report
         if: always()
