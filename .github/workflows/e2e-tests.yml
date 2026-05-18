@@ -77,12 +77,24 @@ jobs:
         if: always()
         run: allure generate reports/allure-results -o reports/allure-html --clean
 
+      - name: Build evidence dashboard
+        if: always()
+        run: python scripts/build-dashboard.py
+
       - name: Upload Allure HTML Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: reports/allure-html/
+          retention-days: 30
+
+      - name: Upload Evidence Dashboard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-dashboard
+          path: reports/dashboard.html
           retention-days: 30
 
       - name: Upload Screenshots & Evidence
@@ -111,14 +123,17 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Artifact | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **allure-report** | Interactive HTML report (download, extract, open index.html with \`npx serve\`) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **evidence-dashboard** | Self-contained HTML dashboard — download, double-click to open (no server needed) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **allure-report** | Interactive HTML report (download, extract, serve with \`npx serve\`) |" >> $GITHUB_STEP_SUMMARY
           echo "| **test-evidence** | Screenshots, videos, traces per test |" >> $GITHUB_STEP_SUMMARY
           echo "| **raw-results** | JUnit XML, pytest logs, Allure JSON |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### How to view the Allure report locally:" >> $GITHUB_STEP_SUMMARY
+          echo "### How to view reports:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "# Download and extract allure-report.zip, then:" >> $GITHUB_STEP_SUMMARY
+          echo "# Evidence Dashboard — just open the file:" >> $GITHUB_STEP_SUMMARY
+          echo "open dashboard.html    # or double-click in file explorer" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Allure Report — needs an HTTP server:" >> $GITHUB_STEP_SUMMARY
           echo "npx serve allure-report" >> $GITHUB_STEP_SUMMARY
-          echo "# Or if you have allure CLI:" >> $GITHUB_STEP_SUMMARY
-          echo "allure open allure-report" >> $GITHUB_STEP_SUMMARY
+          echo "# Or: allure open allure-report" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
