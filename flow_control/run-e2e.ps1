@@ -114,6 +114,15 @@ try {
         } catch {
             Write-Host "  allure generate failed: $_" -ForegroundColor Yellow
         }
+
+        # Build the evidence dashboard.
+        Write-Host "  Building evidence dashboard..." -ForegroundColor Cyan
+        try {
+            & $pythonExe scripts/build-dashboard.py
+            Write-Host "  Dashboard ready at: reports\dashboard.html" -ForegroundColor Green
+        } catch {
+            Write-Host "  Dashboard build failed: $_" -ForegroundColor Yellow
+        }
     } else {
         Write-Host "  No allure-results found, skipping." -ForegroundColor Yellow
     }

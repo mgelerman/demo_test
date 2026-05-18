@@ -50,6 +50,19 @@ try {
     Write-Host "IMPORTANT: open it via HTTP, not file:// (CORS blocks file:// XHR)." -ForegroundColor Yellow
     Write-Host "  Run:  .\scripts\open-report.ps1" -ForegroundColor Cyan
     Write-Host "  Or:   allure open reports/allure-html" -ForegroundColor Cyan
+
+    # Build the evidence dashboard (single-file HTML with embedded screenshots).
+    $pythonExe = Join-Path $repoRoot ".venv\Scripts\python.exe"
+    if (-not (Test-Path $pythonExe)) { $pythonExe = "python" }
+    Write-Host ""
+    Write-Host "Building evidence dashboard..." -ForegroundColor Cyan
+    try {
+        & $pythonExe scripts/build-dashboard.py
+        Write-Host "  Dashboard ready at: reports\dashboard.html" -ForegroundColor Green
+        Write-Host "  Open it: start reports\dashboard.html" -ForegroundColor Cyan
+    } catch {
+        Write-Host "  Dashboard build failed: $_" -ForegroundColor Yellow
+    }
 }
 finally {
     Pop-Location

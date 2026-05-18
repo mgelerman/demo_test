@@ -209,7 +209,7 @@ Pick whichever fits your workflow:
 | Report | File | How to open | Best for |
 | --- | --- | --- | --- |
 | **Allure** | `reports/allure-html/` | Serve over HTTP (see below) | Full test management: epics, features, severity, trends, categories, environment, executor info |
-| **pytest-html** | `reports/pytest-report.html` | Double-click the file | Quick glance: single self-contained file, inline screenshots, video & trace links — no server needed |
+| **Evidence Dashboard** | `reports/dashboard.html` | Double-click the file | Per-test evidence: collapsible BF steps, screenshot galleries, video paths, traces, logs — no server needed |
 
 #### Allure report
 
@@ -217,12 +217,12 @@ Pick whichever fits your workflow:
 > block when opened via `file://`. You **must** serve it over HTTP.
 
 ```powershell
-# Option 1 (recommended): run the suite — it auto-builds the report at the end
+# Option 1 (recommended): run the suite — it auto-builds both reports at the end
 .\scripts\run-suite.ps1
 
 # Option 2: build + serve in two steps
-.\scripts\build-report.ps1        # generates reports/allure-html/
-.\scripts\open-report.ps1         # serves at http://127.0.0.1:3181
+.\scripts\build-report.ps1        # generates reports/allure-html/ + reports/dashboard.html
+.\scripts\open-report.ps1         # serves Allure at http://127.0.0.1:3181
 
 # Option 3: one-shot serve from raw results (no build step)
 .\scripts\view-report.ps1         # allure serve — opens browser automatically
@@ -230,16 +230,23 @@ Pick whichever fits your workflow:
 
 Then open **http://127.0.0.1:3181** in your browser.
 
-#### pytest-html report
+#### Evidence Dashboard
 
 ```powershell
 # Just open the file directly — no server required:
-start reports\pytest-report.html
+start reports\dashboard.html
 ```
 
-Each test row shows inline screenshots (last 3 captured), plus links to
-the video recording and [Playwright Trace Viewer](https://trace.playwright.dev/)
-where you can drag-and-drop the `trace.zip`.
+The dashboard is a single self-contained HTML file with inline base64 screenshots.
+Each test expands to show:
+
+- **Per-step (BF) sections** — labelled BF-1, BF-2, ... with screenshot galleries and log text from each step
+- **Final state screenshot** — the `99_final_state` capture pinned at the bottom
+- **Video recording** — file path to the `.webm` recording
+- **Playwright Trace** — file path + link to [trace.playwright.dev](https://trace.playwright.dev/)
+- **Full test log** — collapsible `log.txt` content
+
+Use the filter bar (All / Passed / Failed) to quickly narrow results.
 
 ### Where the evidence lives
 
@@ -254,15 +261,10 @@ reports/
 │       ├── log.txt
 │       ├── screenshots/
 │       └── summary.json
-├── pytest-report.html             self-contained HTML report (screenshots inline)
+├── dashboard.html                 self-contained evidence dashboard (screenshots inline)
 ├── junit.xml                      CI-consumer-friendly test summary
 └── pytest.log                     full pytest log
 ```
-
-The **pytest-html report** (`reports/pytest-report.html`) is a single self-contained
-file you can double-click to open directly in a browser — no HTTP server required.
-Each test row includes inline screenshots and links to the video and
-[Playwright Trace Viewer](https://trace.playwright.dev/).
 
 Everything in `reports/` is gitignored.
 

@@ -591,43 +591,6 @@ def pytest_runtest_makereport(item, call):  # noqa: ANN001
         except Exception as exc:  # noqa: BLE001
             _log.warning(f"Failed to write summary.json: {exc}")
 
-    # ---- pytest-html: embed final screenshot + link to video/trace ----
-    _attach_extras_to_pytest_html(report, item.funcargs.get("test_evidence_dir"), page_obj)
-
-
-def _attach_extras_to_pytest_html(
-    report: Any, evidence_dir: Path | None, page_obj: Any
-) -> None:
-    """Attach screenshots and evidence links to the pytest-html report row."""
-    try:
-        from pytest_html import extras as html_extras
-    except ImportError:
-        return
-    extra = getattr(report, "extras", [])
-    if evidence_dir is not None:
-        screenshots_dir = Path(evidence_dir) / "screenshots"
-        if screenshots_dir.exists():
-            for png in sorted(screenshots_dir.glob("*.png"))[-3:]:
-                try:
-                    import base64
-
-                    b64 = base64.b64encode(png.read_bytes()).decode("ascii")
-                    extra.append(html_extras.png(b64))
-                except Exception:  # noqa: BLE001
-                    pass
-        video = Path(evidence_dir) / "video.webm"
-        if video.exists():
-            extra.append(html_extras.url(
-                f"file:///{video.resolve().as_posix()}",
-                name="Video",
-            ))
-        trace = Path(evidence_dir) / "trace.zip"
-        if trace.exists():
-            extra.append(html_extras.url(
-                "https://trace.playwright.dev/",
-                name="Open Trace Viewer (drag trace.zip here)",
-            ))
-    report.extras = extra
 
 
 # --------------------------------------------------------------------- allure metadata
@@ -804,14 +767,24 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    """Force a hard exit after ALL other plugins (pytest-html, allure) have finished.
+    """Store exit status for ``pytest_unconfigure``; do NOT terminate here.
 
-    ``trylast=True`` ensures this runs after pytest-html writes its
-    self-contained HTML report and after allure flushes its JSON.
+    Some plugins write their output in ``pytest_unconfigure``, which fires
+    after ``pytest_sessionfinish``.  Terminating here would kill the process
+    before those plugins finish.
     """
-    if session.config.getoption("--no-forced-exit"):
-        return
-    _force_terminate(exitstatus)
+    _SESSION_EXIT_CODE["code"] = exitstatus
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_unconfigure(config: pytest.Config) -> None:
+    """Force-terminate after all plugins have finished."""
+    try:
+        if config.getoption("--no-forced-exit"):
+            return
+    except Exception:  # noqa: BLE001
+        pass
+    _force_terminate(_SESSION_EXIT_CODE.get("code", 0))
 
 
 # --------------------------------------------- post-last-test watchdog
