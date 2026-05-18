@@ -25,6 +25,17 @@ RESULTS_DIR = REPO_ROOT / "reports" / "allure-results"
 EVIDENCE_DIR = REPO_ROOT / "reports" / "evidence"
 DEFAULT_OUT = REPO_ROOT / "reports" / "dashboard.html"
 
+LITE_MODE = False
+
+PLACEHOLDER_SVG = (
+    "data:image/svg+xml,"
+    "%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160'"
+    " fill='%23e5e7eb'%3E%3Crect width='240' height='160' rx='8'/%3E"
+    "%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle'"
+    " fill='%236b7280' font-size='13' font-family='sans-serif'%3E"
+    "screenshot%3C/text%3E%3C/svg%3E"
+)
+
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -70,6 +81,8 @@ def resolve_attachment(results_dir: Path, source: str) -> Path | None:
 
 
 def img_to_b64(path: Path) -> str:
+    if LITE_MODE:
+        return ""
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
@@ -105,12 +118,15 @@ def render_step_screenshots(step: dict, results_dir: Path) -> str:
         if att.get("type", "").startswith("image/"):
             p = resolve_attachment(results_dir, att["source"])
             if p and p.exists():
-                b64 = img_to_b64(p)
                 label = esc(att.get("name", "screenshot"))
+                if LITE_MODE:
+                    src = PLACEHOLDER_SVG
+                else:
+                    src = f"data:image/png;base64,{img_to_b64(p)}"
                 imgs.append(
                     f'<div class="thumb">'
-                    f'<a href="data:image/png;base64,{b64}" target="_blank">'
-                    f'<img src="data:image/png;base64,{b64}" alt="{label}" /></a>'
+                    f'<a href="{src}" target="_blank">'
+                    f'<img src="{src}" alt="{label}" /></a>'
                     f'<span>{label}</span></div>'
                 )
     return f'<div class="gallery">{"".join(imgs)}</div>' if imgs else ""
@@ -198,12 +214,15 @@ def render_test_card(result: dict, results_dir: Path, evidence_dir: Path, sessio
         if att.get("type", "").startswith("image/") and "final_state" in att.get("name", ""):
             p = resolve_attachment(results_dir, att["source"])
             if p and p.exists():
-                b64 = img_to_b64(p)
+                if LITE_MODE:
+                    src = PLACEHOLDER_SVG
+                else:
+                    src = f"data:image/png;base64,{img_to_b64(p)}"
                 parts.append(
                     '<div class="footer-item">'
                     '<div class="footer-label">Final State</div>'
-                    f'<a href="data:image/png;base64,{b64}" target="_blank">'
-                    f'<img src="data:image/png;base64,{b64}" class="final-img" /></a></div>'
+                    f'<a href="{src}" target="_blank">'
+                    f'<img src="{src}" class="final-img" /></a></div>'
                 )
                 break
 
@@ -218,12 +237,13 @@ def render_test_card(result: dict, results_dir: Path, evidence_dir: Path, sessio
         video_uri = video_path.resolve().as_uri()
         vid_id = f"vid-{index}"
         poster_attr = ""
-        for att in result.get("attachments", []):
-            if att.get("type", "").startswith("image/") and "final_state" in att.get("name", ""):
-                fp = resolve_attachment(results_dir, att["source"])
-                if fp and fp.exists():
-                    poster_attr = f' poster="data:image/png;base64,{img_to_b64(fp)}"'
-                break
+        if not LITE_MODE:
+            for att in result.get("attachments", []):
+                if att.get("type", "").startswith("image/") and "final_state" in att.get("name", ""):
+                    fp = resolve_attachment(results_dir, att["source"])
+                    if fp and fp.exists():
+                        poster_attr = f' poster="data:image/png;base64,{img_to_b64(fp)}"'
+                    break
         parts.append(
             '<div class="footer-item" style="min-width:100%">'
             '<div class="footer-label">Video Recording</div>'
@@ -470,7 +490,12 @@ def main() -> None:
     parser.add_argument("--results", default=str(RESULTS_DIR), help="Allure results dir")
     parser.add_argument("--evidence", default=str(EVIDENCE_DIR), help="Evidence dir")
     parser.add_argument("--out", default=str(DEFAULT_OUT), help="Output HTML path")
+    parser.add_argument("--lite", action="store_true",
+                        help="Omit base64 screenshots (placeholder SVGs) for a smaller file")
     args = parser.parse_args()
+
+    global LITE_MODE  # noqa: PLW0603
+    LITE_MODE = args.lite
 
     results_dir = Path(args.results)
     evidence_dir = Path(args.evidence)
