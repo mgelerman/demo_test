@@ -104,6 +104,13 @@ try {
 
     # Auto-build the Allure HTML report so it's ready to view immediately.
     if (Test-Path "reports\allure-results") {
+        # Preserve history so the Trend chart accumulates across runs.
+        $histSrc = "reports\allure-html\history"
+        $histDst = "reports\allure-results\history"
+        if (Test-Path $histSrc) {
+            if (Test-Path $histDst) { Remove-Item $histDst -Recurse -Force }
+            Copy-Item $histSrc $histDst -Recurse
+        }
         Write-Host "Building Allure HTML report..." -ForegroundColor Cyan
         try {
             allure generate "reports/allure-results" --clean -o "reports/allure-html" 2>&1 | Out-Null

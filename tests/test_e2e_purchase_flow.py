@@ -40,6 +40,21 @@ from src.pages.checkout_page import CheckoutPage
     "End-to-end purchase flow: logged-in search -> add to cart -> "
     "assert cart total -> verify checkout summary"
 )
+@allure.description(
+    "The headline scenario from the exercise brief — chains all four required "
+    "functions in a single logged-in session:\n\n"
+    "0. **Clear cart** — remove any stale server-side items.\n"
+    "1. **Search** — find up to 5 't-shirt' products priced <= Rs. 1500 "
+    "(brief section 4.1).\n"
+    "2. **Add to cart** — open each PDP, click Add to cart, return to search "
+    "(brief section 4.2).\n"
+    "3. **Assert total** — verify cart subtotal does not exceed budget * items "
+    "(brief section 4.3).\n"
+    "4. **Checkout summary** — navigate to /checkout and verify addresses, "
+    "line items, total, and Place Order button.\n\n"
+    "All money values use `Decimal` arithmetic; prices are parsed by "
+    "`PriceParser` from the INR ('Rs.') format."
+)
 @allure.severity(allure.severity_level.CRITICAL)
 @allure.tag(
     "e2e", "purchase-flow", "search", "cart", "checkout",

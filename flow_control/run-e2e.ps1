@@ -101,6 +101,13 @@ try {
     Write-Host ""
     Write-Host "=== Step 4/5: Building Allure HTML report ===" -ForegroundColor Magenta
     if (Test-Path "reports\allure-results") {
+        # Preserve history so the Trend chart accumulates across runs.
+        $histSrc = "reports\allure-html\history"
+        $histDst = "reports\allure-results\history"
+        if (Test-Path $histSrc) {
+            if (Test-Path $histDst) { Remove-Item $histDst -Recurse -Force }
+            Copy-Item $histSrc $histDst -Recurse
+        }
         try {
             allure generate "reports/allure-results" --clean -o "reports/allure-html" 2>&1 | Out-Null
             Write-Host "  Report built: reports\allure-html\" -ForegroundColor Green

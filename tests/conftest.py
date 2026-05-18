@@ -591,6 +591,44 @@ def pytest_runtest_makereport(item, call):  # noqa: ANN001
         except Exception as exc:  # noqa: BLE001
             _log.warning(f"Failed to write summary.json: {exc}")
 
+    # ---- pytest-html: embed final screenshot + link to video/trace ----
+    _attach_extras_to_pytest_html(report, item.funcargs.get("test_evidence_dir"), page_obj)
+
+
+def _attach_extras_to_pytest_html(
+    report: Any, evidence_dir: Path | None, page_obj: Any
+) -> None:
+    """Attach screenshots and evidence links to the pytest-html report row."""
+    try:
+        from pytest_html import extras as html_extras
+    except ImportError:
+        return
+    extra = getattr(report, "extras", [])
+    if evidence_dir is not None:
+        screenshots_dir = Path(evidence_dir) / "screenshots"
+        if screenshots_dir.exists():
+            for png in sorted(screenshots_dir.glob("*.png"))[-3:]:
+                try:
+                    import base64
+
+                    b64 = base64.b64encode(png.read_bytes()).decode("ascii")
+                    extra.append(html_extras.png(b64))
+                except Exception:  # noqa: BLE001
+                    pass
+        video = Path(evidence_dir) / "video.webm"
+        if video.exists():
+            extra.append(html_extras.url(
+                f"file:///{video.resolve().as_posix()}",
+                name="Video",
+            ))
+        trace = Path(evidence_dir) / "trace.zip"
+        if trace.exists():
+            extra.append(html_extras.url(
+                "https://trace.playwright.dev/",
+                name="Open Trace Viewer (drag trace.zip here)",
+            ))
+    report.extras = extra
+
 
 # --------------------------------------------------------------------- allure metadata
 # These two files live alongside the per-test Allure result JSONs and are
@@ -683,12 +721,52 @@ def _write_allure_categories(results_dir: Path) -> None:
         _log.warning(f"Could not write Allure categories.json: {exc}")
 
 
+def _write_allure_executor(results_dir: Path) -> None:
+    """Write ``executor.json`` so the report shows a branded title and build info."""
+    try:
+        results_dir.mkdir(parents=True, exist_ok=True)
+        executor = {
+            "name": "E2E Automation Suite",
+            "type": "local",
+            "buildName": (
+                f"automationexercise.com — "
+                f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+            ),
+            "reportName": "E-commerce E2E Test Report",
+        }
+        ci_url = os.environ.get("GITHUB_SERVER_URL", "")
+        ci_repo = os.environ.get("GITHUB_REPOSITORY", "")
+        ci_run = os.environ.get("GITHUB_RUN_ID", "")
+        if ci_url and ci_repo and ci_run:
+            executor["type"] = "github"
+            executor["buildName"] = f"CI #{ci_run}"
+            executor["url"] = f"{ci_url}/{ci_repo}"
+            executor["buildUrl"] = f"{ci_url}/{ci_repo}/actions/runs/{ci_run}"
+            executor["reportUrl"] = executor["buildUrl"]
+        (results_dir / "executor.json").write_text(
+            json.dumps(executor, indent=2),
+            encoding="utf-8",
+        )
+    except Exception as exc:  # noqa: BLE001
+        _log.warning(f"Could not write Allure executor.json: {exc}")
+
+
 # --------------------------------------------------------------------------- env shim
 def pytest_configure(config: pytest.Config) -> None:  # noqa: D401
     """Make sure cwd is the repo root so .env loading works regardless of caller."""
     os.chdir(_REPO_ROOT)
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Write Allure metadata AFTER the allure plugin's --clean-alluredir has run.
+
+    ``pytest_configure`` fires before the allure plugin cleans the results
+    directory, so anything written there gets wiped.  ``pytest_sessionstart``
+    fires after all ``pytest_configure`` hooks, so the directory is stable.
+    """
     _write_allure_environment(_ALLURE_RESULTS_DIR)
     _write_allure_categories(_ALLURE_RESULTS_DIR)
+    _write_allure_executor(_ALLURE_RESULTS_DIR)
 
 
 # --------------------------------------------- forceful session finalisation
@@ -724,10 +802,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+@pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    """Force a hard exit after pytest has produced all reports.
+    """Force a hard exit after ALL other plugins (pytest-html, allure) have finished.
 
-    See module-level note above for why this is the right move.
+    ``trylast=True`` ensures this runs after pytest-html writes its
+    self-contained HTML report and after allure flushes its JSON.
     """
     if session.config.getoption("--no-forced-exit"):
         return
@@ -755,7 +835,7 @@ _SESSION_EXIT_CODE: dict[str, int] = {"code": 0}
 _PASSED_COUNT: dict[str, int] = {"n": 0}
 _FAILED_COUNT: dict[str, int] = {"n": 0}
 _SESSION_START: dict[str, float] = {"t": 0.0}
-_WATCHDOG_GRACE_S = 8
+_WATCHDOG_GRACE_S = 12
 
 
 def _force_terminate(exit_code: int = 0) -> None:

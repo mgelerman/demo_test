@@ -201,11 +201,20 @@ failure.
 | `@allure.title` | Human-readable labels including parametrized values |
 | `@allure.tag` | Brief section tags (`brief-section-4-1`, etc.) for filtering |
 
-### Viewing the report
+### Viewing the reports
+
+Every test run generates **two independent HTML reports** from the same data.
+Pick whichever fits your workflow:
+
+| Report | File | How to open | Best for |
+| --- | --- | --- | --- |
+| **Allure** | `reports/allure-html/` | Serve over HTTP (see below) | Full test management: epics, features, severity, trends, categories, environment, executor info |
+| **pytest-html** | `reports/pytest-report.html` | Double-click the file | Quick glance: single self-contained file, inline screenshots, video & trace links — no server needed |
+
+#### Allure report
 
 > **Important:** the Allure HTML report uses JavaScript that browsers
 > block when opened via `file://`. You **must** serve it over HTTP.
-> Three easy options:
 
 ```powershell
 # Option 1 (recommended): run the suite — it auto-builds the report at the end
@@ -221,6 +230,17 @@ failure.
 
 Then open **http://127.0.0.1:3181** in your browser.
 
+#### pytest-html report
+
+```powershell
+# Just open the file directly — no server required:
+start reports\pytest-report.html
+```
+
+Each test row shows inline screenshots (last 3 captured), plus links to
+the video recording and [Playwright Trace Viewer](https://trace.playwright.dev/)
+where you can drag-and-drop the `trace.zip`.
+
 ### Where the evidence lives
 
 ```
@@ -234,9 +254,15 @@ reports/
 │       ├── log.txt
 │       ├── screenshots/
 │       └── summary.json
+├── pytest-report.html             self-contained HTML report (screenshots inline)
 ├── junit.xml                      CI-consumer-friendly test summary
 └── pytest.log                     full pytest log
 ```
+
+The **pytest-html report** (`reports/pytest-report.html`) is a single self-contained
+file you can double-click to open directly in a browser — no HTTP server required.
+Each test row includes inline screenshots and links to the video and
+[Playwright Trace Viewer](https://trace.playwright.dev/).
 
 Everything in `reports/` is gitignored.
 

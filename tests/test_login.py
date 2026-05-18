@@ -41,6 +41,18 @@ _BOGUS_PASSWORD = "this-is-definitely-not-the-password"
     "Login: wrong password rejected -> correct password authenticates -> "
     "logout returns to login page"
 )
+@allure.description(
+    "Exercises the full authentication lifecycle in a single browser window, "
+    "mirroring a real user's experience:\n\n"
+    "1. **Negative path** — submit deliberately wrong credentials and verify "
+    "the site rejects them with a visible error message.\n"
+    "2. **Positive recovery** — clear the form, enter real credentials from "
+    "`.env`, and confirm the 'Logged in as ...' header appears.\n"
+    "3. **Logout** — click logout and verify the session ends (back on /login, "
+    "no 'Logged in as' marker).\n\n"
+    "All three phases share the same browser context so the Playwright trace "
+    "and video capture one uninterrupted user journey."
+)
 @allure.severity(allure.severity_level.BLOCKER)
 @allure.tag("smoke", "auth", "login", "logout", "brief-section-4")
 @pytest.mark.smoke

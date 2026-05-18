@@ -30,6 +30,17 @@ try {
         exit 1
     }
 
+    # Preserve history from the previous report so the Trend chart builds up
+    # across runs. allure generate reads history/ from the input (allure-results)
+    # and writes updated history/ to the output (allure-html).
+    $historySource = "reports\allure-html\history"
+    $historyDest   = "reports\allure-results\history"
+    if (Test-Path $historySource) {
+        if (Test-Path $historyDest) { Remove-Item $historyDest -Recurse -Force }
+        Copy-Item $historySource $historyDest -Recurse
+        Write-Host "  Preserved history from previous report." -ForegroundColor DarkGray
+    }
+
     Write-Host "Generating Allure HTML report..." -ForegroundColor Cyan
     allure generate "reports/allure-results" --clean -o "reports/allure-html"
 
