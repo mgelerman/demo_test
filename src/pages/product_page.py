@@ -16,6 +16,7 @@ from __future__ import annotations
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from src.pages.base_page import BasePage
+from src.utils.healing import AriaFallback
 
 
 class ProductPage(BasePage):
@@ -28,6 +29,7 @@ class ProductPage(BasePage):
         "button.btn.btn-default.cart",
         "button:has-text('Add to cart')",
     )
+    ADD_TO_CART_ARIA = AriaFallback(role="button", name="Add to cart")
 
     # Modal that opens after a successful add-to-cart click.
     POST_ADD_MODAL = "#cartModal"
@@ -36,6 +38,7 @@ class ProductPage(BasePage):
         "#cartModal button:has-text('Continue Shopping')",
         "button.close-modal",
     )
+    POST_ADD_DIALOG_ARIA = AriaFallback(role="button", name="Continue Shopping")
 
     PRODUCT_NAME = ".product-information h2"
     PRODUCT_PRICE = ".product-information span span"
@@ -64,21 +67,25 @@ class ProductPage(BasePage):
     # ---------------------------------------------------------------- add to cart
     def add_to_cart(self) -> bool:
         """Click ``Add to cart`` and dismiss the confirmation modal."""
-        for selector in self.ADD_TO_CART_CANDIDATES:
-            try:
-                btn = self.page.locator(selector).first
-                if not btn.is_visible(timeout=2000):
-                    continue
-                btn.scroll_into_view_if_needed()
-                btn.click()
-                self.log.info("Clicked Add-to-cart")
-                self._wait_for_post_add_modal()
-                self._dismiss_post_add_dialog()
-                return True
-            except PlaywrightTimeout:
-                continue
-        self.log.error("Add-to-cart button not found on this PDP")
-        return False
+        result = self._first_visible(
+            self.ADD_TO_CART_CANDIDATES,
+            label="add-to-cart",
+            timeout_ms=2000,
+            aria_fallback=self.ADD_TO_CART_ARIA,
+        )
+        if result.locator is None:
+            self.log.error("Add-to-cart button not found on this PDP")
+            return False
+        try:
+            result.locator.scroll_into_view_if_needed()
+            result.locator.click()
+            self.log.info(f"Clicked Add-to-cart (healed={result.healed})")
+            self._wait_for_post_add_modal()
+            self._dismiss_post_add_dialog()
+            return True
+        except PlaywrightTimeout:
+            self.log.error("Add-to-cart click timed out")
+            return False
 
     def _wait_for_post_add_modal(self) -> None:
         """Wait briefly for the confirmation modal so the next click lands."""
@@ -91,14 +98,12 @@ class ProductPage(BasePage):
 
     def _dismiss_post_add_dialog(self) -> None:
         """Close the cart modal so subsequent navigation isn't blocked."""
-        for selector in self.POST_ADD_DIALOG_CLOSE:
-            try:
-                btn = self.page.locator(selector).first
-                if btn.is_visible(timeout=2000):
-                    btn.click()
-                    return
-            except PlaywrightTimeout:
-                continue
+        self._click_first_visible(
+            self.POST_ADD_DIALOG_CLOSE,
+            label="post-add-dialog",
+            timeout_ms=2000,
+            aria_fallback=self.POST_ADD_DIALOG_ARIA,
+        )
         # As a last resort, press Escape - covers any rare modal variant.
         try:
             self.page.keyboard.press("Escape")

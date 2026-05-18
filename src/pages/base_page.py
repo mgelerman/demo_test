@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from src.config import get_settings
+from src.utils.healing import AriaFallback, HealingResult, find_first_visible
 from src.utils.logger import get_logger
 from src.utils.screenshot import attach_screenshot
 
@@ -94,20 +95,46 @@ class BasePage:
         )
 
     def _click_first_visible(
-        self, selectors: tuple[str, ...], *, label: str, timeout_ms: int = 1500
+        self,
+        selectors: tuple[str, ...],
+        *,
+        label: str,
+        timeout_ms: int = 1500,
+        aria_fallback: AriaFallback | None = None,
     ) -> bool:
-        for selector in selectors:
-            try:
-                locator = self.page.locator(selector).first
-                if locator.is_visible(timeout=timeout_ms):
-                    locator.click(timeout=2000)
-                    self.log.info(f"Dismissed {label} via {selector}")
-                    return True
-            except PlaywrightTimeout:
-                continue
-            except Exception as exc:  # noqa: BLE001
-                self.log.debug(f"Ignoring {label} attempt with {selector}: {exc}")
-        return False
+        result = find_first_visible(
+            self.page,
+            selectors,
+            aria_fallback=aria_fallback,
+            timeout_ms=timeout_ms,
+            label=label,
+        )
+        if result.locator is None:
+            return False
+        try:
+            result.locator.click(timeout=2000)
+            self.log.info(f"Dismissed {label} (healed={result.healed})")
+            return True
+        except Exception as exc:  # noqa: BLE001
+            self.log.debug(f"Click failed for {label}: {exc}")
+            return False
+
+    def _first_visible(
+        self,
+        selectors: tuple[str, ...],
+        *,
+        label: str = "",
+        timeout_ms: int = 1500,
+        aria_fallback: AriaFallback | None = None,
+    ) -> HealingResult:
+        """Find the first visible element from ``selectors``, with ARIA fallback."""
+        return find_first_visible(
+            self.page,
+            selectors,
+            aria_fallback=aria_fallback,
+            timeout_ms=timeout_ms,
+            label=label,
+        )
 
     # ---------------------------------------------------------------- waits
     def wait_for_network_idle(self, timeout_ms: int | None = None) -> None:

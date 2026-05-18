@@ -260,7 +260,7 @@ tests/         pytest cases (only assertions live here)
 src/flows/     the 4 brief functions; orchestrate page objects
 src/pages/     Page Object Model (one class per page, extends BasePage)
 src/components/  reusable widgets (header, price filter, paginator, product card)
-src/utils/     price parser, screenshot helper, loguru, variant picker
+src/utils/     price parser, screenshot helper, loguru, variant picker, self-healing
 src/config/    pydantic-settings + site profiles
 data/          YAML inputs for parameterized tests
 ```
@@ -273,6 +273,52 @@ Hard-line rules:
 - **No cross-page imports** — cross-page orchestration happens in `src/flows/`.
 - **Locator priority**: role → data-testid → text → CSS attr → XPath. The brief mandates XPath for `SearchResultsPage.PRODUCT_CARD_XPATH` only.
 - **Credentials** never live in code — only in `.env`.
+
+### Self-healing locators (accessibility-tree fallback)
+
+Every interactive element is located through a **multi-candidate strategy
+with accessibility-tree fallback**. The framework tries a ranked list of CSS
+selectors; if all fail, it queries the browser's
+[accessibility tree](https://developer.mozilla.org/en-US/docs/Glossary/Accessibility_tree)
+via Playwright's `get_by_role(role, name=...)`.
+
+The accessibility tree describes elements by **semantic role** (button, link,
+textbox) and **accessible name** (visible text / `aria-label`) — both of
+which survive CSS class renames, ID changes, and most UI redesigns.
+
+```
+Normal path:
+  CSS candidate #1 ✓  →  use it
+
+Fallback path (selector drift / redesign):
+  CSS candidate #1 ✗
+  CSS candidate #2 ✗
+  CSS candidate #3 ✗
+  Accessibility tree: role="button", name="Add to cart" ✓  →  HEALED
+```
+
+When healing activates, the framework:
+
+1. **Logs a WARNING** with the failed candidates and the ARIA fallback that resolved.
+2. **Takes a screenshot** and attaches it to the Allure report as evidence.
+3. **Attaches a text artefact** listing every failed selector and the healing resolution.
+
+This means a reviewer can filter the Allure report for "HEALED" events and
+see exactly which selectors drifted and how the framework recovered.
+
+| Component | Candidates | ARIA fallback |
+| --- | --- | --- |
+| `ProductPage` (Add to cart) | `button.cart`, `.btn-default.cart`, text match | `button` / `"Add to cart"` |
+| `ProductPage` (Close modal) | `#cartModal button.close-modal`, text match | `button` / `"Continue Shopping"` |
+| `PriceFilter` (Min input) | `input[name=...]`, `aria-label`, `placeholder` | `textbox` / `/from\|min/i` |
+| `PriceFilter` (Max input) | `input[name=...]`, `aria-label`, `placeholder` | `textbox` / `/to\|max/i` |
+| `PriceFilter` (Apply) | `button:has-text('Apply')`, `[type=submit]` | `button` / `/apply/i` |
+| `Paginator` (Next page) | `a[rel=next]`, `aria-label`, text match | `link` / `/next/i` |
+| `BasePage` (Cookie consent) | OneTrust, aria-label, text variants | _(opt-in per subclass)_ |
+
+The healing utility lives in [`src/utils/healing.py`](src/utils/healing.py)
+and is used by `BasePage._first_visible()`, `BasePage._click_first_visible()`,
+`PriceFilter._fill_first()`, and `Paginator._next_locator()`.
 
 ### Page Object Model
 
@@ -364,7 +410,7 @@ latest run → download the `test-reports` artifact.
 │   ├── pages/                        Page Object Model (6 pages)
 │   ├── components/                   Reusable widgets (header, paginator, price filter, product card)
 │   ├── flows/                        The 4 brief functions + checkout
-│   └── utils/                        price_parser, screenshot, logger, variant_picker
+│   └── utils/                        price_parser, screenshot, logger, variant_picker, healing
 ├── tests/
 │   ├── conftest.py                   Fixtures, evidence wiring, watchdog, ad-popup handler
 │   ├── test_login.py                 Login flow (negative → positive → logout, 9 assertions)

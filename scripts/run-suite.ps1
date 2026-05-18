@@ -51,15 +51,17 @@ try {
     # session needs - which is exactly how we get the multi-minute teardown
     # hangs. Wiping them up-front guarantees a fresh slate every invocation.
     # ----------------------------------------------------------------------
-    Write-Host "Pre-flight: killing stale browser/test processes..." -ForegroundColor DarkGray
-    $killNames = @('chrome', 'chromium', 'msedgewebview2', 'node', 'playwright')
-    foreach ($n in $killNames) {
-        Get-Process -Name $n -ErrorAction SilentlyContinue |
-            Stop-Process -Force -ErrorAction SilentlyContinue
-    }
-    # Be careful with python: only kill pythons that look like a stuck
-    # pytest worker (i.e. have ``pytest`` in their command line). We do
-    # NOT want to kill the IDE's language server or unrelated scripts.
+    Write-Host "Pre-flight: killing stale automation processes..." -ForegroundColor DarkGray
+    # Only kill Chrome/Chromium spawned by Playwright (command line contains
+    # 'ms-playwright'). This leaves personal Chrome, Teams, Edge untouched.
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.Name -match '^(chrome|chromium)\.exe$' -and
+            $_.CommandLine -match 'ms-playwright'
+        } |
+        ForEach-Object {
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
     Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
         Where-Object { $_.CommandLine -match 'pytest' -and $_.ProcessId -ne $PID } |
         ForEach-Object {

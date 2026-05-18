@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
+from src.utils.healing import AriaFallback, find_first_visible
 from src.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -22,6 +24,7 @@ class Paginator:
         "a:has-text('Next')",
         "button:has-text('Next')",
     )
+    NEXT_LINK_ARIA = AriaFallback(role="link", name=re.compile(r"next", re.I))
 
     def __init__(self, page: "Page") -> None:
         self.page = page
@@ -60,11 +63,11 @@ class Paginator:
         return True
 
     def _next_locator(self) -> "Locator | None":
-        for selector in self.NEXT_LINK_CANDIDATES:
-            locator = self.page.locator(selector).first
-            try:
-                if locator.count() > 0:
-                    return locator
-            except PlaywrightTimeout:
-                continue
-        return None
+        result = find_first_visible(
+            self.page,
+            self.NEXT_LINK_CANDIDATES,
+            aria_fallback=self.NEXT_LINK_ARIA,
+            timeout_ms=1500,
+            label="paginator-next",
+        )
+        return result.locator
